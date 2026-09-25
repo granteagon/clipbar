@@ -52,9 +52,9 @@ struct HistoryView: View {
                 Spacer()
                 Button(store.paused ? "Resume" : "Pause") { store.paused.toggle() }
                 Button("Clear") { store.clear() }.disabled(store.history.items.isEmpty)
-                Button { settings() } label: { Image(systemName: "gearshape") }.help("Settings")
+                Button { settings() } label: { Image(systemName: "gearshape") }.help("Settings (⌘,)")
             }.controlSize(.small).padding(12)
-            Text("Return copies · ⌘V pastes in your app · Esc closes").font(.caption2).foregroundStyle(.secondary).padding(.bottom, 10)
+            Text("Return copies · ⌘V pastes in your app · ⌘, Settings · Esc closes").font(.caption2).foregroundStyle(.secondary).padding(.bottom, 10)
         }.frame(width: 480, height: 480)
         .onAppear { searching = true; selection = filtered.first?.id }
         .onChange(of: query) { _ in selection = filtered.first?.id }
@@ -74,38 +74,100 @@ struct HistoryView: View {
     }
 }
 
+enum SettingsPane: String, CaseIterable {
+    case general = "General", history = "History", privacy = "Privacy", shortcuts = "Shortcuts"
+    var symbol: String {
+        switch self {
+        case .general: return "gearshape"
+        case .history: return "clipboard"
+        case .privacy: return "hand.raised"
+        case .shortcuts: return "keyboard"
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var store: Store
+    let pane: SettingsPane
+    @State private var excludedDraft = ""
     private func binding<T>(_ key: String, fallback: T) -> Binding<T> {
         Binding(get: { store.prefs.value(key) as? T ?? fallback }, set: { store.update(key, $0) })
     }
     private func label(_ title: String, _ key: String) -> String { title + (store.prefs.forced(key) ? " 🔒" : "") }
     var body: some View {
-        Form {
-            Section("History") {
-                Stepper(label("Keep \(store.prefs.limit) items", "HistoryLimit"), value: binding("HistoryLimit", fallback: 50), in: 1...500).disabled(store.prefs.forced("HistoryLimit"))
-                HStack {
-                    Text(label("Retention (hours; 0 = no expiry)", "RetentionHours"))
-                    TextField("Hours", value: Binding(get: { store.prefs.hours }, set: { store.update("RetentionHours", max(0, min(8760, $0))) }), format: .number).frame(width: 70)
-                }.disabled(store.prefs.forced("RetentionHours"))
-                Toggle(label("Save history across restarts", "PersistHistory"), isOn: binding("PersistHistory", fallback: false)).disabled(store.prefs.forced("PersistHistory"))
-                Text("Off by default. Saved history is encrypted on this Mac with a key in your login Keychain.").font(.caption).foregroundStyle(.secondary)
-                Toggle(label("Clear history when the Mac locks or sleeps", "ClearOnLock"), isOn: binding("ClearOnLock", fallback: true)).disabled(store.prefs.forced("ClearOnLock"))
+        VStack(spacing: 0) {
+            Form {
+                switch pane {
+                case .general:
+                    Section("Appearance") {
+                        Toggle(label("Show icon in menu bar", "ShowMenuBarIcon"), isOn: binding("ShowMenuBarIcon", fallback: true))
+                            .disabled(store.prefs.forced("ShowMenuBarIcon"))
+                        Text("ClipBar runs without a Dock icon. With the menu bar icon hidden, use your keyboard shortcut to open history, then ⌘, to open Settings.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Section("Access") {
+                        Text("You can always open ClipBar again from Finder or Spotlight to bring up history. If the shortcut is unavailable, the menu bar icon reappears automatically.")
+                            .font(.callout).foregroundStyle(.secondary)
+                        Button("Quit ClipBar") { NSApp.terminate(nil) }
+                    }
+                case .history:
+                    Section("Clipboard history") {
+                        Toggle(label("Enable clipboard history", "CaptureEnabled"), isOn: binding("CaptureEnabled", fallback: true)).disabled(store.prefs.forced("CaptureEnabled"))
+                        Stepper(label("Keep \(store.prefs.limit) items", "HistoryLimit"), value: binding("HistoryLimit", fallback: 50), in: 1...500).disabled(store.prefs.forced("HistoryLimit"))
+                        HStack {
+                            Text(label("Expire items after", "RetentionHours"))
+                            Spacer()
+                            TextField("Hours", value: Binding(get: { store.prefs.hours }, set: { store.update("RetentionHours", max(0, min(8760, $0))) }), format: .number).labelsHidden().textFieldStyle(.roundedBorder).frame(width: 65)
+                            Text("hours")
+                        }.disabled(store.prefs.forced("RetentionHours"))
+                        Text("Use 0 to keep items until the history limit is reached or you clear them.").font(.caption).foregroundStyle(.secondary)
+                        Toggle(label("Preserve history across restarts", "PersistHistory"), isOn: binding("PersistHistory", fallback: false)).disabled(store.prefs.forced("PersistHistory"))
+                        Text("Off by default. When enabled, history is encrypted on this Mac using a key in your login Keychain.").font(.caption).foregroundStyle(.secondary)
+                        Button("Clear History", role: .destructive) { store.clear() }.disabled(store.history.items.isEmpty)
+                    }
+                case .privacy:
+                    Section("Automatic clearing") {
+                        Toggle(label("Clear history when the Mac locks or sleeps", "ClearOnLock"), isOn: binding("ClearOnLock", fallback: true)).disabled(store.prefs.forced("ClearOnLock"))
+                    }
+                    Section("Ignored applications") {
+                        Text(label("App bundle IDs, one per line", "ExcludedBundleIDs")).font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $excludedDraft).font(.system(.body, design: .monospaced)).frame(height: 85)
+                            .disabled(store.prefs.forced("ExcludedBundleIDs"))
+                            .accessibilityLabel("Ignored application bundle identifiers")
+                        HStack {
+                            Text("Changes take effect when you click Apply.").font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Apply") {
+                                store.update("ExcludedBundleIDs", excludedDraft.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
+                            }.disabled(store.prefs.forced("ExcludedBundleIDs") || excludedDraft == store.prefs.excluded.joined(separator: "\n"))
+                        }
+                        Text("Concealed and transient copies are skipped. Unmarked secrets cannot be recognized reliably.").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Button("Clear History and System Clipboard", role: .destructive) { store.clearClipboard() }
+                case .shortcuts:
+                    Section("Global shortcut") {
+                        Picker(label("Show clipboard history", "Shortcut"), selection: binding("Shortcut", fallback: "command-backslash")) {
+                            Text("⌘\\").tag("command-backslash"); Text("⌘/").tag("command-slash"); Text("⌘⇧V").tag("command-shift-v")
+                        }.disabled(store.prefs.forced("Shortcut"))
+                        if let error = store.shortcutError { Text(error).foregroundStyle(.red).font(.caption) }
+                    }
+                    Section("While history is open") {
+                        shortcutRow("Open Settings", "⌘,")
+                        shortcutRow("Select an item", "↑  ↓")
+                        shortcutRow("Copy selection and return to your app", "Return")
+                        shortcutRow("Close history", "Esc")
+                        Text("After choosing an item, press ⌘V in your app to paste it.").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }.formStyle(.grouped).toggleStyle(.checkbox).padding(.horizontal, 20).padding(.vertical, 12)
+            if ["ShowMenuBarIcon", "CaptureEnabled", "HistoryLimit", "RetentionHours", "PersistHistory", "ClearOnLock", "ExcludedBundleIDs", "Shortcut"].contains(where: store.prefs.forced) {
+                Label("Locked settings are managed by your organization.", systemImage: "lock.fill")
+                    .font(.caption).foregroundStyle(.secondary).padding(.bottom, 12)
             }
-            Section("Capture") {
-                Toggle(label("Capture clipboard changes", "CaptureEnabled"), isOn: binding("CaptureEnabled", fallback: true)).disabled(store.prefs.forced("CaptureEnabled"))
-                Text(label("Excluded app bundle IDs (one per line)", "ExcludedBundleIDs"))
-                TextEditor(text: Binding(get: { store.prefs.excluded.joined(separator: "\n") }, set: { store.update("ExcludedBundleIDs", $0.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }) })).font(.system(.caption, design: .monospaced)).frame(height: 70).disabled(store.prefs.forced("ExcludedBundleIDs"))
-                Text("Apps that mark copies as concealed or transient are skipped. Unmarked secrets cannot be identified reliably.").font(.caption).foregroundStyle(.secondary)
-            }
-            Section("Keyboard") {
-                Picker(label("Show history", "Shortcut"), selection: binding("Shortcut", fallback: "command-backslash")) {
-                    Text("⌘\\").tag("command-backslash"); Text("⌘/").tag("command-slash"); Text("⌘⇧V").tag("command-shift-v")
-                }.disabled(store.prefs.forced("Shortcut"))
-                if let shortcutError = store.shortcutError { Text(shortcutError).foregroundStyle(.red).font(.caption) }
-            }
-            HStack { Button("Clear history and system clipboard", role: .destructive) { store.clearClipboard() }; Spacer(); Button("Quit ClipBar") { NSApp.terminate(nil) } }
-            Text("🔒 Managed settings are controlled by your organization. No network, analytics, or account.").font(.caption).foregroundStyle(.secondary)
-        }.formStyle(.grouped).frame(width: 560, height: 630)
+        }.frame(width: 560, height: 440)
+        .onAppear { excludedDraft = store.prefs.excluded.joined(separator: "\n") }
+    }
+    private func shortcutRow(_ title: String, _ keys: String) -> some View {
+        HStack { Text(title); Spacer(); Text(keys).foregroundStyle(.secondary) }
     }
 }

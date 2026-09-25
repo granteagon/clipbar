@@ -6,6 +6,7 @@ Deploy a **forced** custom preferences payload through your MDM, using Apple's `
 
 | Key | Type | Default | Behavior |
 | --- | --- | --- | --- |
+| ShowMenuBarIcon | boolean | true | False hides menu bar icon; shortcut failure overrides hiding to preserve access |
 | CaptureEnabled | boolean | true | False stops capture and clears history, including its persistence file |
 | HistoryLimit | integer | 50 | Clamped to 1–500; older entries evicted |
 | RetentionHours | real | 24 | 0 disables age expiry; maximum 8760 hours |

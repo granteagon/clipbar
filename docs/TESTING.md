@@ -10,6 +10,8 @@ Local validation on 2026-09-25: six tests pass; universal arm64/x86_64 build and
 
 - Start the bundled app. Verify no Dock icon and a visible clipboard menu bar icon.
 - Copy two text entries and one PNG/TIFF. Open history with Command-backslash. Search, select with arrows, Return to copy, and paste in another app.
+- Verify Command-comma opens Settings from history; switching General, History, Privacy, and Shortcuts preserves the selected pane on reopening.
+- Hide the menu bar icon in General, confirm no Dock icon, close windows and reopen from Finder/Spotlight, then restore the default. Verify shortcut failure restores the icon even in hidden mode.
 - Verify Escape and outside clicks dismiss the panel. Test alternate shortcuts and a deliberately conflicting hotkey.
 - Confirm duplicates move to the top, Clear removes history, and Settings' combined clear empties the system clipboard.
 - Pause capture, copy text, resume, and confirm paused copies were not retained.
@@ -21,3 +23,5 @@ Local validation on 2026-09-25: six tests pass; universal arm64/x86_64 build and
 - Deny Keychain/file access and verify visible errors without logging clipboard contents.
 - Test on both Intel and Apple Silicon, macOS 13 and current macOS. Test keyboard layouts beyond US ANSI; shortcut keys currently use physical ANSI key positions.
 - Inspect the signed, notarized release with Gatekeeper and test Homebrew install/uninstall from the tap.
+
+Preferences update validation: Command-comma opens the native toolbar settings window; General, History, and Privacy panes were inspected visually. Hiding the icon, closing Settings, reopening the app, and opening Settings again succeeded; the previously selected pane was retained. The menu bar preference was restored to on after testing. Shortcut-conflict fallback remains a manual check.

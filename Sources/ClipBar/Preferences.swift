@@ -3,7 +3,7 @@ import CoreFoundation
 
 final class Preferences {
     static let domain = "com.granteagon.ClipBar"
-    static let defaults: [String: Any] = ["HistoryLimit": 50, "RetentionHours": 24, "PersistHistory": false, "ClearOnLock": true, "CaptureEnabled": true, "ExcludedBundleIDs": ["com.agilebits.onepassword7", "com.1password.1password", "com.bitwarden.desktop", "com.apple.Passwords"], "Shortcut": "command-backslash"]
+    static let defaults: [String: Any] = ["ShowMenuBarIcon": true, "HistoryLimit": 50, "RetentionHours": 24, "PersistHistory": false, "ClearOnLock": true, "CaptureEnabled": true, "ExcludedBundleIDs": ["com.agilebits.onepassword7", "com.1password.1password", "com.bitwarden.desktop", "com.apple.Passwords"], "Shortcut": "command-backslash"]
     func value(_ key: String) -> Any { CFPreferencesCopyAppValue(key as CFString, Self.domain as CFString) ?? Self.defaults[key]! }
     func forced(_ key: String) -> Bool { CFPreferencesAppValueIsForced(key as CFString, Self.domain as CFString) }
     func set(_ key: String, _ value: Any) {

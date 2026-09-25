@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var status: NSStatusItem!
     private var panel: HistoryPanel!
     private var settings: NSWindow?
+    private var settingsTabs: NSTabViewController?
     private var previousApp: NSRunningApplication?
     private var keyMonitor: Any?
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,7 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         store.settingsChanged = { [weak self] in self?.registerShortcut() }
         registerShortcut()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, self.panel.isKeyWindow else { return event }
+            guard let self else { return event }
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
+            if (self.panel.isKeyWindow || self.settings?.isKeyWindow == true),
+               modifiers == .command, event.charactersIgnoringModifiers == "," {
+                self.showSettings(); return nil
+            }
+            guard self.panel.isKeyWindow else { return event }
             if event.keyCode == 53 { self.panel.orderOut(nil); self.previousApp?.activate(options: []); return nil }
             if [125, 126, 36, 76].contains(Int(event.keyCode)) {
                 NotificationCenter.default.post(name: .init("ClipBar.navigation"), object: Int(event.keyCode))
@@ -38,12 +45,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
             return event
         }
-        toggle()
+        if store.prefs.bool("ShowMenuBarIcon") { toggle() }
     }
     private func registerShortcut() {
         let name = store.prefs.value("Shortcut") as? String ?? "command-backslash"
         store.shortcutError = hotKey.register(name) ? nil : "Shortcut is in use. Choose another shortcut or use the menu bar icon."
         status.button?.toolTip = store.shortcutError ?? "ClipBar — clipboard history"
+        // Keep a recovery path even when a saved or managed shortcut is unavailable.
+        status.isVisible = store.prefs.bool("ShowMenuBarIcon") || store.shortcutError != nil
     }
     @objc func toggle() {
         if panel.isVisible { panel.orderOut(nil); return }
@@ -57,11 +66,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func showSettings() {
         panel.orderOut(nil)
         if settings == nil {
-            settings = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 630), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            settings?.title = "ClipBar Settings"; settings?.isReleasedWhenClosed = false
+            let tabs = NSTabViewController()
+            tabs.tabStyle = .toolbar
+            for pane in SettingsPane.allCases {
+                let item = NSTabViewItem(viewController: NSHostingController(rootView: SettingsView(store: store, pane: pane)))
+                item.viewController?.title = "\(pane.rawValue) — ClipBar"
+                item.label = pane.rawValue
+                item.image = NSImage(systemSymbolName: pane.symbol, accessibilityDescription: pane.rawValue)
+                tabs.addTabViewItem(item)
+            }
+            settingsTabs = tabs
+            settings = NSWindow(contentViewController: tabs)
+            settings?.styleMask = [.titled, .closable]
+            settings?.title = "ClipBar Settings"
+            settings?.isReleasedWhenClosed = false
+            settings?.toolbarStyle = .preference
+            settings?.setContentSize(NSSize(width: 560, height: 440))
+            settings?.center()
         }
-        settings?.contentView = NSHostingView(rootView: SettingsView(store: store))
-        settings?.center(); NSApp.activate(ignoringOtherApps: true); settings?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true); settings?.makeKeyAndOrderFront(nil)
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if settings?.isVisible == true { NSApp.activate(ignoringOtherApps: true); settings?.makeKeyAndOrderFront(nil) }
+        else if !panel.isVisible { toggle() }
+        else { NSApp.activate(ignoringOtherApps: true); panel.makeKeyAndOrderFront(nil) }
+        return false
     }
     func windowDidResignKey(_ notification: Notification) { if (notification.object as? NSWindow) === panel { panel.orderOut(nil) } }
     func applicationWillTerminate(_ notification: Notification) { store.persist() }

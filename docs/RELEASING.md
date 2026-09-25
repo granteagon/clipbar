@@ -13,3 +13,17 @@
 Do not publish a cask pointing to a nonexistent release or bypass Gatekeeper. Central `homebrew/cask` inclusion is a separate maintainer decision, not guaranteed by creating a tap. See [Homebrew's cask requirements](https://docs.brew.sh/Acceptable-Casks) and [Cask Cookbook](https://docs.brew.sh/Cask-Cookbook).
 
 This repository currently contains a development build workflow. It does not contain signing secrets or automatically publish releases.
+
+## Homebrew path from first release to wider adoption
+
+Start with your own public `granteagon/homebrew-tap` repository. A tap does not need acceptance into Homebrew's central catalog. Put the generated cask in `Casks/clipbar.rb`; it identifies the exact release URL, version, SHA-256, minimum OS, and `.app` to install. Once both release and tap exist, the intended command is:
+
+```sh
+brew install --cask granteagon/tap/clipbar
+```
+
+This is a future install command, not an available package today. The token changes if the product is renamed. Follow Homebrew's trust prompt for a non-official tap. For each app release, publish the new signed/notarized archive and update the cask's version and checksum. Users receive it through normal Homebrew updates/upgrades.
+
+After the project has real adoption, submit a cask pull request to `Homebrew/homebrew-cask`. Acceptance is discretionary and includes notability, a verifiable upstream release, current macOS compatibility, naming, and Gatekeeper checks. A free/open-source license alone does not guarantee acceptance. Keep the personal tap maintained while that review happens.
+
+References: [create and maintain a tap](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap), [acceptable casks](https://docs.brew.sh/Acceptable-Casks).

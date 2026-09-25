@@ -10,6 +10,8 @@ Build with `./scripts/build.sh`, then open `dist/ClipBar.app`. The local build i
 
 - Press **Command-backslash** or click the clipboard menu bar icon.
 - Search, use arrow keys to choose an entry, and press Return to copy it. The previous app regains focus; press Command-V to paste.
+- Press **Command-comma** while history is open to access Settings. Native toolbar panes organize General, History, Privacy, and Shortcuts.
+- General → **Show icon in menu bar** is on by default. Turn it off for keyboard-only access with no Dock or menu bar icon. Reopen ClipBar from Finder or Spotlight to recover access; a failed shortcut registration automatically restores the menu bar icon.
 - Settings offers Command-slash and Command-Shift-V alternatives. A conflicting shortcut is reported; the menu bar icon still works.
 - Capture plain text and PNG/TIFF images. Rich formatting and file objects are not preserved.
 - Pause capture, delete individual entries from their context menu, or clear history.
