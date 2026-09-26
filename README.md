@@ -2,16 +2,16 @@
 
 A small, native macOS clipboard history app built with Swift, AppKit, and SwiftUI. Free and MIT licensed. macOS 13 or newer. No third-party packages, network requests, analytics, accounts, or cloud sync.
 
-Automatic pasting needs macOS Accessibility permission. Enable it from Settings → Shortcuts → Allow, then approve ClipBar in System Settings → Privacy & Security → Accessibility. Without permission, the selected item is copied and a setup message appears. You can disable automatic pasting in Shortcuts to use copy-only mode.
+Automatic pasting needs macOS Accessibility permission. Enable it from Settings → Shortcuts → Open Accessibility Settings, then approve ClipBar in System Settings → Privacy & Security → Accessibility. Without permission, the selected item is copied and the picker closes. See Settings → Shortcuts for permission status. You can disable automatic pasting in Shortcuts to use copy-only mode.
 
 **Naming status:** ClipBar is already used by unrelated clipboard apps. This implementation is independent; the public name is pending a decision.
 
 ## Use
 
-Build with `./scripts/build.sh`, then open `dist/ClipBar.app`. The local build is ad-hoc signed for development; it is not a notarized public release.
+Build with `./scripts/build.sh`, then open `dist/ClipBar.app`. The local build uses an available Apple Development identity, falling back to ad-hoc signing if none exists; it is not a notarized public release.
 
 - Press **Command-backslash** or click the clipboard menu bar icon.
-- Search and use arrow keys to choose an entry. Return or a row click pastes into the previous app. Hold Command while navigating and release it to paste; a quick shortcut tap only opens the picker.
+- Hold the shortcut, use arrow keys to choose an entry, then release Command. Selection immediately copies and dismisses the borderless picker; automatic paste follows if permitted. Return or a row click also selects. Click the menu bar icon to browse without holding a shortcut.
 - Press **Command-comma** while history is open to access Settings. Native toolbar panes organize General, History, Privacy, and Shortcuts.
 - General → **Show icon in menu bar** is on by default. Turn it off for keyboard-only access with no Dock or menu bar icon. Reopen ClipBar from Finder or Spotlight to recover access; a failed shortcut registration automatically restores the menu bar icon.
 - Settings offers Command-slash and Command-Shift-V alternatives. A conflicting shortcut is reported; the menu bar icon still works.
@@ -59,3 +59,9 @@ GitHub publication and Homebrew packaging are pending the public-name decision. 
 ## License
 
 MIT. Copyright © 2026 Grant Eagon.
+
+### Accessibility troubleshooting
+
+Clipboard permission allows reading copies; **Accessibility** separately allows pasting into another app. The Settings button opens the relevant system pane directly and permission status refreshes when the app becomes active. Settings also has Show This App in Finder and a Restart ClipBar action (with a warning about memory-only history).
+
+Earlier ad-hoc builds changed identity on every rebuild. Local builds now prefer a stable Apple Development signing identity. After switching signatures, you may need to remove the old ClipBar entry from the Accessibility list and add the current app again. Do not reset unrelated privacy permissions. Keep the app at a consistent path. Public releases will need Developer ID signing, which is a different identity again.

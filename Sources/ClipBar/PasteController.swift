@@ -7,6 +7,25 @@ final class PasteController {
     static func requestPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        // The OS prompt may have already been dismissed. Open the pane explicitly.
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    static func restart() {
+        let alert = NSAlert()
+        alert.messageText = "Restart ClipBar?"
+        alert.informativeText = "History that is not saved across restarts will be cleared."
+        alert.addButton(withTitle: "Restart"); alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { app, error in
+            DispatchQueue.main.async {
+                if app != nil { NSApp.terminate(nil) }
+                else { let alert = NSAlert(); alert.messageText = "Could not restart ClipBar"; alert.informativeText = error?.localizedDescription ?? "Quit and reopen ClipBar manually."; alert.runModal() }
+            }
+        }
     }
     func cancel() { timer?.invalidate(); timer = nil }
     func paste(into target: NSRunningApplication, failed: @escaping (String) -> Void) {

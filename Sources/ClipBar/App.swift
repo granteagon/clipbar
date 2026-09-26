@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var settingsTabs: NSTabViewController?
     private var previousApp: NSRunningApplication?
     private var keyMonitor: Any?
+    private var releaseTimer: Timer?
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         store = Store()
@@ -25,24 +26,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         status.button?.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "ClipBar clipboard history")
         status.button?.target = self; status.button?.action = #selector(toggle)
-        panel = HistoryPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 540), styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
+        panel = HistoryPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 540), styleMask: [.borderless], backing: .buffered, defer: false)
         panel.title = "ClipBar"; panel.titleVisibility = .hidden; panel.titlebarAppearsTransparent = true
-        panel.isReleasedWhenClosed = false; panel.level = .floating
+        panel.isReleasedWhenClosed = false; panel.level = .popUpMenu
+        panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true
         panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         panel.delegate = self
         hotKey.action = { [weak self] in
             guard let self else { return }
             if self.panel.isVisible { self.navigate(1) }
-            else { self.toggle() }
+            else { self.showPicker(fromShortcut: true) }
         }
         store.settingsChanged = { [weak self] in self?.registerShortcut() }
         registerShortcut()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self else { return event }
             if event.type == .flagsChanged {
-                if self.panel.isKeyWindow, !event.modifierFlags.contains(.command), self.selectionSession.release() {
-                    if let clip = self.store.selected { self.choose(clip) }
-                }
+                if !event.modifierFlags.contains(.command) { self.commitRelease() }
                 return event
             }
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
@@ -53,8 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             guard self.panel.isKeyWindow else { return event }
             if event.keyCode == 53 { self.selectionSession.cancel(); self.panel.orderOut(nil); self.previousApp?.activate(options: []); return nil }
             if [125, 126, 36, 76].contains(Int(event.keyCode)) {
-                if event.keyCode == 125 { self.navigate(1) }
-                else if event.keyCode == 126 { self.navigate(-1) }
+                if event.keyCode == 125 { self.navigate(1, modifiersHeld: event.modifierFlags.contains(.command)) }
+                else if event.keyCode == 126 { self.navigate(-1, modifiersHeld: event.modifierFlags.contains(.command)) }
                 else if let clip = self.store.selected { self.choose(clip) }
                 return nil
             }
@@ -84,27 +84,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Keep a recovery path even when a saved or managed shortcut is unavailable.
         status.isVisible = store.prefs.bool("ShowMenuBarIcon") || store.shortcutError != nil
     }
-    @objc func toggle() {
-        paster.cancel(); selectionSession.begin()
+    @objc func toggle() { showPicker(fromShortcut: false) }
+    private func showPicker(fromShortcut: Bool) {
+        paster.cancel(); releaseTimer?.invalidate(); selectionSession.begin(modifiersHeld: fromShortcut)
         if panel.isVisible { panel.orderOut(nil); return }
         if let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != ProcessInfo.processInfo.processIdentifier { previousApp = front }
-        store.query = ""; store.selectedID = store.history.items.first?.id
+        store.selectedID = store.history.items.first?.id
         store.applyPolicy()
         panel.contentView = NSHostingView(rootView: HistoryView(store: store, choose: { [weak self] clip in
             self?.choose(clip)
         }, settings: { [weak self] in self?.showSettings() }))
+        panel.setContentSize(NSSize(width: 600, height: store.pickerHeight))
         panel.center(); NSApp.activate(ignoringOtherApps: true); panel.makeKeyAndOrderFront(nil)
+        // Poll actual modifier state as well as listening for flagsChanged. The release
+        // event can be delivered before this panel becomes key during app activation.
+        let timer = Timer(timeInterval: 0.016, repeats: true) { [weak self] _ in
+            guard !CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand) else { return }
+            self?.commitRelease()
+        }
+        releaseTimer = timer; RunLoop.main.add(timer, forMode: .common)
     }
-    private func navigate(_ delta: Int) {
+    private func commitRelease() {
+        guard panel.isVisible, selectionSession.release() else { return }
+        releaseTimer?.invalidate(); releaseTimer = nil
+        if let clip = store.selected { choose(clip) }
+        else { panel.orderOut(nil); previousApp?.activate(options: []) }
+    }
+    private func navigate(_ delta: Int, modifiersHeld: Bool = true) {
         let items = store.filtered
         guard !items.isEmpty else { return }
         let index = items.firstIndex(where: { $0.id == store.selectedID }) ?? 0
         store.selectedID = items[max(0, min(items.count - 1, index + delta))].id
-        selectionSession.navigate(modifiersHeld: NSEvent.modifierFlags.contains(.command))
+        selectionSession.navigate(modifiersHeld: modifiersHeld)
     }
     private func choose(_ clip: Clip) {
-        selectionSession.cancel()
+        selectionSession.cancel(); releaseTimer?.invalidate(); releaseTimer = nil
         store.copy(clip)
+        panel.orderOut(nil)
+        previousApp?.activate(options: [])
         store.pasteNotice = nil
         guard store.prefs.bool("PasteAutomatically") else {
             panel.orderOut(nil); previousApp?.activate(options: []); return
@@ -121,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         paster.paste(into: target) { [weak self] message in self?.store.pasteNotice = message }
     }
     private func showSettings() {
-        selectionSession.cancel(); paster.cancel()
+        selectionSession.cancel(); releaseTimer?.invalidate(); releaseTimer = nil; paster.cancel()
         panel.orderOut(nil)
         if settings == nil {
             let tabs = NSTabViewController()
@@ -150,7 +167,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         else { NSApp.activate(ignoringOtherApps: true); panel.makeKeyAndOrderFront(nil) }
         return false
     }
-    func windowDidResignKey(_ notification: Notification) { if (notification.object as? NSWindow) === panel { selectionSession.cancel(); panel.orderOut(nil) } }
+    func windowDidResignKey(_ notification: Notification) { if (notification.object as? NSWindow) === panel { selectionSession.cancel(); releaseTimer?.invalidate(); releaseTimer = nil; panel.orderOut(nil) } }
+    func applicationDidBecomeActive(_ notification: Notification) { store?.applyPolicy() }
     func applicationWillTerminate(_ notification: Notification) { store.persist() }
 }
 

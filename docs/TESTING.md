@@ -39,3 +39,12 @@ Nine automated tests pass, including quick-tap versus held-selection release, on
 - Verify metadata for older saved entries without a source app, multi-line text, and image dimensions.
 
 Local UI validation on 2026-09-26: compact selected row and metadata inspected; native Command-A/Command-C in the filter field work; Return without Accessibility permission copies and displays the permission setup banner. Actual cross-app paste remains unverified until the user grants Accessibility permission to the installed build.
+
+
+## Release-to-select correction
+
+The picker is now borderless and search-free. Shortcut invocation arms the initial row; Command release is checked through both modifier events and a short-lived 16 ms timer in common run-loop modes. Selecting always copies and dismisses, including when Accessibility is denied. Menu-bar invocation does not arm release until navigation with Command held.
+
+Additional regression tests cover initial-row commit without navigation and a missing modifier snapshot during navigation. Verify release with and without Accessibility, shortcut activation from a different app, Escape and outside-click cancellation, and permission recognition after signing-identity changes. The permission setup button opens the system pane directly; restart is an explicit user action because it discards memory-only history.
+
+Live regression check: in a separate TextEdit test document, copied FIRST and SECOND entries, opened the picker, sent Command–Down, released Command, and pasted into the test document. The result was FIRST, confirming the selected older entry was copied on release while Accessibility was unavailable. Borderless layout with two rows was inspected. The Open Accessibility Settings button successfully navigated to Privacy & Security → Accessibility. System Settings showed an enabled ClipBar entry while the running app reported unavailable access, consistent with a stale signing identity or another copy; no privacy permissions were changed during testing. The new build's designated requirement uses the Apple Development certificate rather than per-build cdhashes.

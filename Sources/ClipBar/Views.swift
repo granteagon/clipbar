@@ -5,7 +5,6 @@ struct HistoryView: View {
     @ObservedObject var store: Store
     var choose: (Clip) -> Void
     var settings: () -> Void
-    @FocusState private var searching: Bool
     private var filtered: [Clip] { store.filtered }
     private func title(_ clip: Clip) -> String {
         guard let text = clip.text else { return "Image" }
@@ -42,27 +41,13 @@ struct HistoryView: View {
                     Image(systemName: "return").font(.system(size: 15, weight: .semibold)).frame(width: 27, height: 27)
                 }.buttonStyle(.borderedProminent).tint(.orange).disabled(store.selected == nil)
                     .help(store.prefs.bool("PasteAutomatically") ? "Paste selection" : "Copy selection")
-            }.padding(.horizontal, 16).padding(.top, 28).padding(.bottom, 12)
+            }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 12)
             Divider()
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Filter history", text: $store.query).textFieldStyle(.plain).focused($searching)
-                if !store.query.isEmpty { Button { store.query = "" } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain) }
-            }.padding(.horizontal, 16).padding(.vertical, 9)
-            if let notice = store.pasteNotice {
-                HStack {
-                    Text(notice).font(.caption)
-                    Spacer()
-                    if !store.accessibilityGranted {
-                        Button("Allow Accessibility…") { PasteController.requestPermission() }
-                    }
-                }.padding(10).background(Color.accentColor.opacity(0.12))
-            }
             if let error = store.error { Text(error).font(.caption).foregroundColor(.red).padding(8) }
             if filtered.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "doc.on.clipboard").font(.system(size: 32)).foregroundStyle(.secondary)
-                    Text(store.query.isEmpty ? "Your next copy starts here" : "No matching items").font(.headline)
+                    Text("Your next copy starts here").font(.headline)
                     Text("Copy text or an image to add it to history.").foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -102,14 +87,14 @@ struct HistoryView: View {
             HStack(spacing: 12) {
                 Text("\(store.history.items.count) \(store.history.items.count == 1 ? "item" : "items")").foregroundStyle(.secondary)
                 Spacer()
-                Text(store.prefs.bool("PasteAutomatically") ? "↑↓ select · release ⌘ to paste" : "↑↓ select · Return copies").foregroundStyle(.secondary)
+                Text(store.prefs.bool("PasteAutomatically") ? "↑↓ select · release ⌘" : "↑↓ select · release ⌘ to copy").foregroundStyle(.secondary)
                 Button(store.paused ? "Resume" : "Pause") { store.paused.toggle() }
                 Button { settings() } label: { Image(systemName: "gearshape") }.help("Settings (⌘,)")
             }.font(.caption).buttonStyle(.plain).padding(12)
-        }.frame(width: 600, height: 540)
+        }.frame(width: 600, height: store.pickerHeight)
         .background(.regularMaterial)
-        .onAppear { searching = true }
-        .onChange(of: store.query) { _ in store.selectedID = filtered.first?.id }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.white.opacity(0.18), lineWidth: 1))
     }
 }
 
@@ -189,7 +174,15 @@ struct SettingsView: View {
                             .disabled(store.prefs.forced("PasteAutomatically"))
                         HStack {
                             Text(store.accessibilityGranted ? "Accessibility access is enabled." : "Accessibility access is needed to paste into other apps.").font(.caption).foregroundStyle(.secondary)
-                            if !store.accessibilityGranted { Button("Allow…") { PasteController.requestPermission() } }
+                            if !store.accessibilityGranted { Button("Open Accessibility Settings…") { PasteController.requestPermission() } }
+                        }
+                    }
+                    Section("Permission troubleshooting") {
+                        if let notice = store.pasteNotice { Text(notice).font(.caption).foregroundStyle(.secondary) }
+                        Text("Automatic paste needs Accessibility permission, separate from Clipboard access. Enable this copy of ClipBar in System Settings. If it still shows as unavailable, restart ClipBar. Unsaved history is cleared on restart.").font(.caption).foregroundStyle(.secondary)
+                        HStack {
+                            Button("Show This App in Finder") { NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL]) }
+                            Button("Restart ClipBar…") { PasteController.restart() }
                         }
                     }
                     Section("Global shortcut") {
@@ -204,7 +197,7 @@ struct SettingsView: View {
                         shortcutRow("Paste selection into your app", "Return")
                         shortcutRow("Paste after navigating with ⌘ held", "Release ⌘")
                         shortcutRow("Close history", "Esc")
-                        Text("Turn off automatic pasting to copy only. A quick shortcut tap keeps history open.").font(.caption).foregroundStyle(.secondary)
+                        Text("Hold the shortcut, choose a row, then release Command. Selection always copies and closes; automatic paste additionally requires Accessibility.").font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }.formStyle(.grouped).toggleStyle(.checkbox).padding(.horizontal, 20).padding(.vertical, 12)

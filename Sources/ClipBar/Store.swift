@@ -4,10 +4,10 @@ import ClipBarCore
 final class Store: ObservableObject {
     @Published private(set) var history = History()
     @Published var selectedID: UUID?
-    @Published var query = ""
     @Published var pasteNotice: String?
     @Published var accessibilityGranted = PasteController.permitted
-    var filtered: [Clip] { history.items.filter { query.isEmpty || ($0.text ?? "Image").localizedCaseInsensitiveContains(query) } }
+    var filtered: [Clip] { history.items }
+    var pickerHeight: CGFloat { CGFloat(max(2, min(history.items.count, 11))) * 43 + 100 }
     var selected: Clip? { filtered.first(where: { $0.id == selectedID }) ?? filtered.first }
     @Published var paused = false
     @Published var error: String?

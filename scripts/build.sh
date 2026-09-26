@@ -11,5 +11,10 @@ fi
 mkdir -p dist/ClipBar.app/Contents/MacOS
 cp "$bin" dist/ClipBar.app/Contents/MacOS/ClipBar
 cp Resources/Info.plist dist/ClipBar.app/Contents/Info.plist
-codesign --force --sign "${SIGNING_IDENTITY:--}" --options runtime dist/ClipBar.app
+# Keep local app identity stable across rebuilds when a development certificate exists.
+identity="${SIGNING_IDENTITY:-}"
+if [[ -z "$identity" ]]; then
+  identity="$(security find-identity -v -p codesigning | awk '/"Apple Development:/ {print $2; exit}')"
+fi
+codesign --force --sign "${identity:--}" --options runtime dist/ClipBar.app
 printf 'Built %s/dist/ClipBar.app\n' "$PWD"
