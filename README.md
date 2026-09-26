@@ -2,6 +2,8 @@
 
 A small, native macOS clipboard history app built with Swift, AppKit, and SwiftUI. Free and MIT licensed. macOS 13 or newer. No third-party packages, network requests, analytics, accounts, or cloud sync.
 
+Automatic pasting needs macOS Accessibility permission. Enable it from Settings → Shortcuts → Allow, then approve ClipBar in System Settings → Privacy & Security → Accessibility. Without permission, the selected item is copied and a setup message appears. You can disable automatic pasting in Shortcuts to use copy-only mode.
+
 **Naming status:** ClipBar is already used by unrelated clipboard apps. This implementation is independent; the public name is pending a decision.
 
 ## Use
@@ -9,11 +11,11 @@ A small, native macOS clipboard history app built with Swift, AppKit, and SwiftU
 Build with `./scripts/build.sh`, then open `dist/ClipBar.app`. The local build is ad-hoc signed for development; it is not a notarized public release.
 
 - Press **Command-backslash** or click the clipboard menu bar icon.
-- Search, use arrow keys to choose an entry, and press Return to copy it. The previous app regains focus; press Command-V to paste.
+- Search and use arrow keys to choose an entry. Return or a row click pastes into the previous app. Hold Command while navigating and release it to paste; a quick shortcut tap only opens the picker.
 - Press **Command-comma** while history is open to access Settings. Native toolbar panes organize General, History, Privacy, and Shortcuts.
 - General → **Show icon in menu bar** is on by default. Turn it off for keyboard-only access with no Dock or menu bar icon. Reopen ClipBar from Finder or Spotlight to recover access; a failed shortcut registration automatically restores the menu bar icon.
 - Settings offers Command-slash and Command-Shift-V alternatives. A conflicting shortcut is reported; the menu bar icon still works.
-- Capture plain text and PNG/TIFF images. Rich formatting and file objects are not preserved.
+- Capture plain text and PNG/TIFF images. Rich formatting and file objects are not preserved. New items display the foreground app name (a best-effort source), plus image dimensions or text line counts.
 - Pause capture, delete individual entries from their context menu, or clear history.
 - To start automatically, add the built app in System Settings → General → Login Items.
 

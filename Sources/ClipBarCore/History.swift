@@ -5,9 +5,10 @@ public struct Clip: Codable, Identifiable, Equatable {
     public var date: Date
     public let text: String?
     public let image: Data?
+    public let sourceApp: String?
     public var byteCount: Int { (text?.utf8.count ?? 0) + (image?.count ?? 0) }
-    public init(text: String? = nil, image: Data? = nil, date: Date = Date()) {
-        self.id = UUID(); self.date = date; self.text = text; self.image = image
+    public init(text: String? = nil, image: Data? = nil, date: Date = Date(), sourceApp: String? = nil) {
+        self.id = UUID(); self.date = date; self.text = text; self.image = image; self.sourceApp = sourceApp
     }
 }
 

@@ -3,6 +3,12 @@ import ClipBarCore
 
 final class Store: ObservableObject {
     @Published private(set) var history = History()
+    @Published var selectedID: UUID?
+    @Published var query = ""
+    @Published var pasteNotice: String?
+    @Published var accessibilityGranted = PasteController.permitted
+    var filtered: [Clip] { history.items.filter { query.isEmpty || ($0.text ?? "Image").localizedCaseInsensitiveContains(query) } }
+    var selected: Clip? { filtered.first(where: { $0.id == selectedID }) ?? filtered.first }
     @Published var paused = false
     @Published var error: String?
     @Published var revision = 0
@@ -39,7 +45,7 @@ final class Store: ObservableObject {
     func unlock() { changeCount = NSPasteboard.general.changeCount; locked = false }
     func update(_ key: String, _ value: Any) { prefs.set(key, value); applyPolicy(); persist(); settingsChanged?() }
     func applyPolicy() {
-        prefs.refresh(); revision += 1
+        prefs.refresh(); revision += 1; accessibilityGranted = PasteController.permitted
         let previous = history.items
         if !prefs.bool("CaptureEnabled") || (locked && prefs.bool("ClearOnLock")) { history.clear() }
         history.prune(limit: prefs.limit, hours: prefs.hours)
@@ -60,9 +66,9 @@ final class Store: ObservableObject {
         guard !ignored.contains(where: types.contains) else { return }
         // Inspect only known representations; never resolve file URLs or fetch remote content.
         if let text = pasteboard.string(forType: .string), !text.isEmpty {
-            history.add(Clip(text: text), limit: prefs.limit, hours: prefs.hours)
+            history.add(Clip(text: text, sourceApp: NSWorkspace.shared.frontmostApplication?.localizedName), limit: prefs.limit, hours: prefs.hours)
         } else if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff), data.count <= History.itemLimit {
-            history.add(Clip(image: data), limit: prefs.limit, hours: prefs.hours)
+            history.add(Clip(image: data, sourceApp: NSWorkspace.shared.frontmostApplication?.localizedName), limit: prefs.limit, hours: prefs.hours)
         } else { return }
         persist()
     }
