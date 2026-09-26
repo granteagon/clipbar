@@ -6,6 +6,7 @@ struct HistoryView: View {
     var choose: (Clip) -> Void
     var settings: () -> Void
     private var filtered: [Clip] { store.filtered }
+    private let selectionColors = [Color(red: 0.26, green: 0.24, blue: 0.88), Color(red: 0.53, green: 0.19, blue: 0.79)]
     private func title(_ clip: Clip) -> String {
         guard let text = clip.text else { return "Image" }
         return text.split(whereSeparator: \.isNewline).first.map(String.init) ?? text
@@ -38,15 +39,20 @@ struct HistoryView: View {
                 Text(store.selected.map(title) ?? "Clipboard History").font(.system(size: 21)).lineLimit(1)
                 Spacer()
                 Button { if let clip = store.selected { choose(clip) } } label: {
-                    Image(systemName: "return").font(.system(size: 15, weight: .semibold)).frame(width: 27, height: 27)
-                }.buttonStyle(.borderedProminent).tint(.orange).disabled(store.selected == nil)
+                    Image(systemName: "return")
+                        .resizable().scaledToFit().frame(width: 19, height: 16)
+                        .frame(width: 42, height: 32)
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
+                }.buttonStyle(PasteButtonStyle()).fixedSize().disabled(store.selected == nil)
+                    .accessibilityLabel(store.prefs.bool("PasteAutomatically") ? "Paste selection" : "Copy selection")
                     .help(store.prefs.bool("PasteAutomatically") ? "Paste selection" : "Copy selection")
             }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 12)
+                .background(LinearGradient(colors: [.purple.opacity(0.13), .orange.opacity(0.10)], startPoint: .leading, endPoint: .trailing))
             Divider()
             if let error = store.error { Text(error).font(.caption).foregroundColor(.red).padding(8) }
             if filtered.isEmpty {
                 VStack(spacing: 10) {
-                    Image(systemName: "doc.on.clipboard").font(.system(size: 32)).foregroundStyle(.secondary)
+                    Image(systemName: "doc.on.clipboard").font(.system(size: 32)).foregroundStyle(.purple)
                     Text("Your next copy starts here").font(.headline)
                     Text("Copy text or an image to add it to history.").foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,7 +76,12 @@ struct HistoryView: View {
                                     }.padding(.horizontal, 10).frame(height: 42)
                                         .contentShape(Rectangle())
                                         .foregroundStyle(selected ? Color.white : Color.primary)
-                                        .background(selected ? Color.accentColor : Color.clear).cornerRadius(8)
+                                        .background {
+                                            if selected {
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(LinearGradient(colors: selectionColors, startPoint: .leading, endPoint: .trailing))
+                                            }
+                                        }.cornerRadius(8)
                                 }.buttonStyle(.plain).id(clip.id)
                                     .accessibilityLabel(title(clip) + ", " + detail(clip))
                                     .accessibilityAddTraits(selected ? .isSelected : [])
@@ -95,6 +106,23 @@ struct HistoryView: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.white.opacity(0.18), lineWidth: 1))
+    }
+}
+
+/// Own the entire bezel so AppKit's standard control height cannot crop the glyph.
+private struct PasteButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Color(red: 0.22, green: 0.08, blue: 0.12))
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(LinearGradient(colors: [Color(red: 1, green: 0.76, blue: 0.25), Color(red: 1, green: 0.39, blue: 0.35)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.30), lineWidth: 1))
+            .shadow(color: .orange.opacity(enabled ? 0.25 : 0), radius: 5, y: 2)
+            .opacity(enabled ? 1 : 0.45)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
     }
 }
 
