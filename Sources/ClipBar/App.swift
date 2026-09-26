@@ -87,6 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func toggle() { showPicker(fromShortcut: false) }
     private func showPicker(fromShortcut: Bool) {
         paster.cancel(); releaseTimer?.invalidate(); selectionSession.begin(modifiersHeld: fromShortcut)
+        // App activation otherwise brings an existing Settings window back as well.
+        // Only an explicit Settings action should make that window visible.
+        settings?.orderOut(nil)
         if panel.isVisible { panel.orderOut(nil); return }
         if let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != ProcessInfo.processInfo.processIdentifier { previousApp = front }
         store.selectedID = store.history.items.first?.id
@@ -155,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             settings?.styleMask = [.titled, .closable]
             settings?.title = "ClipBar Settings"
             settings?.isReleasedWhenClosed = false
+            settings?.hidesOnDeactivate = true
             settings?.toolbarStyle = .preference
             settings?.setContentSize(NSSize(width: 560, height: 440))
             settings?.center()
@@ -162,8 +166,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true); settings?.makeKeyAndOrderFront(nil)
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if settings?.isVisible == true { NSApp.activate(ignoringOtherApps: true); settings?.makeKeyAndOrderFront(nil) }
-        else if !panel.isVisible { toggle() }
+        settings?.orderOut(nil)
+        if !panel.isVisible { toggle() }
         else { NSApp.activate(ignoringOtherApps: true); panel.makeKeyAndOrderFront(nil) }
         return false
     }
