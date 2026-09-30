@@ -1,6 +1,6 @@
 # Managed deployment
 
-Preference domain: `com.granteagon.ClipBar` (provisional while product naming is pending).
+Preference domain: `com.granteagon.ClipBar`.
 
 Deploy a **forced** custom preferences payload through your MDM, using Apple's `com.apple.ManagedClient.preferences` payload. The example profile is unsigned and illustrative; change its identifiers and organization before deployment. Do not install it on a production fleet before testing on a managed pilot Mac.
 

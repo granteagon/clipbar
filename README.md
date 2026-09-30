@@ -1,14 +1,29 @@
-# ClipBar (working name)
+# ClipBar
 
 A small, native macOS clipboard history app built with Swift, AppKit, and SwiftUI. Free and MIT licensed. macOS 13 or newer. No third-party packages, network requests, analytics, accounts, or cloud sync.
 
 Automatic pasting needs macOS Accessibility permission. Enable it from Settings → Shortcuts → Open Accessibility Settings, then approve ClipBar in System Settings → Privacy & Security → Accessibility. Without permission, the selected item is copied and the picker closes. See Settings → Shortcuts for permission status. You can disable automatic pasting in Shortcuts to use copy-only mode.
 
-**Naming status:** ClipBar is already used by unrelated clipboard apps. This implementation is independent; the public name is pending a decision.
+![ClipBar clipboard history](docs/images/clipboard-history.png)
+
+*Actual app views with sample clipboard entries.*
+
+## Install
+
+Install [Homebrew](https://brew.sh) and Apple's Command Line Tools (`xcode-select --install`) if needed, then:
+
+```sh
+brew install granteagon/tap/clipbar
+clipbar
+```
+
+The formula builds locally from source. Allow a few minutes for the first build. Requires macOS 13+ and Swift 5.9+ (Xcode 15 or newer Command Line Tools). Apple Silicon and Intel are supported by the source package; Intel has not yet been tested on hardware.
+
+ClipBar appears in your menu bar. For automatic paste, open its Settings → Shortcuts and enable Accessibility for the installed app. The **Show This App in Finder** button helps locate it. You can add it to Login Items in System Settings to start at login. To update, run `brew upgrade granteagon/tap/clipbar`; quit and reopen ClipBar afterward. Locally signed builds may need their Accessibility entry removed and re-added after an upgrade.
+
+To uninstall, quit ClipBar and run `brew uninstall clipbar`. Optional saved history and preferences remain in your Library; disable **Preserve history across restarts** and clear history first if you want to remove saved entries.
 
 ## Use
-
-Build with `./scripts/build.sh`, then open `dist/ClipBar.app`. The local build uses an available Apple Development identity, falling back to ad-hoc signing if none exists; it is not a notarized public release.
 
 - Press **Command-backslash** or click the clipboard menu bar icon.
 - Hold the shortcut, use arrow keys to choose an entry, then release Command. Selection immediately copies and dismisses the borderless picker; automatic paste follows if permitted. Return or a row click also selects. Click the menu bar icon to browse without holding a shortcut.
@@ -18,6 +33,8 @@ Build with `./scripts/build.sh`, then open `dist/ClipBar.app`. The local build u
 - Capture plain text and PNG/TIFF images. Rich formatting and file objects are not preserved. New items display the foreground app name (a best-effort source), plus image dimensions or text line counts.
 - Pause capture, delete individual entries from their context menu, or clear history.
 - To start automatically, add the built app in System Settings → General → Login Items.
+
+![ClipBar History settings](docs/images/history-settings.png)
 
 ## Privacy defaults
 
@@ -43,6 +60,8 @@ IT administrators can enforce capture, count, expiry, persistence, lock clearing
 ## Development
 
 ```sh
+git clone https://github.com/granteagon/clipbar.git
+cd clipbar
 swift test
 ./scripts/build.sh
 open dist/ClipBar.app
@@ -50,11 +69,13 @@ open dist/ClipBar.app
 ./scripts/build.sh --universal
 ```
 
-Open `Package.swift` in Xcode to develop. Swift 5.9+ and the macOS SDK are required. Tests exercise expiry, deduplication, limits, eviction, encrypted persistence, and tamper rejection. See [manual validation](docs/TESTING.md) for OS integration checks.
+Open `Package.swift` in Xcode to develop. Swift 5.9+ and the macOS SDK are required. The unit tests cover history limits, expiry, deduplication, memory eviction, selection on Command release, privacy markers, managed preference behavior, isolated pasteboard writes, encrypted persistence, wrong keys, and tampered files. See [manual validation](docs/TESTING.md) for OS integration checks.
 
 ## Distribution
 
-GitHub publication and Homebrew packaging are pending the public-name decision. A Developer ID Application certificate and Apple notarization credentials are required for the intended public release. See [release instructions](docs/RELEASING.md). Homebrew's central cask repository has its own acceptance requirements; a personal tap is the initial distribution route.
+This project is distributed as source through [granteagon/homebrew-tap](https://github.com/granteagon/homebrew-tap). No prebuilt notarized app is offered yet. See [release instructions](docs/RELEASING.md) for maintaining the formula and the future Developer ID–signed app route. Inclusion in Homebrew's central catalog is a separate process.
+
+ClipBar is a name also used by unrelated projects. This repository and the `granteagon/tap/clipbar` package are Grant Eagon's independent implementation.
 
 ## License
 
@@ -64,4 +85,4 @@ MIT. Copyright © 2026 Grant Eagon.
 
 Clipboard permission allows reading copies; **Accessibility** separately allows pasting into another app. The Settings button opens the relevant system pane directly and permission status refreshes when the app becomes active. Settings also has Show This App in Finder and a Restart ClipBar action (with a warning about memory-only history).
 
-Earlier ad-hoc builds changed identity on every rebuild. Local builds now prefer a stable Apple Development signing identity. After switching signatures, you may need to remove the old ClipBar entry from the Accessibility list and add the current app again. Do not reset unrelated privacy permissions. Keep the app at a consistent path. Public releases will need Developer ID signing, which is a different identity again.
+Earlier ad-hoc builds changed identity on every rebuild. Local builds now prefer a stable Apple Development signing identity. After switching signatures, you may need to remove the old ClipBar entry from the Accessibility list and add the current app again. Do not reset unrelated privacy permissions. Keep the app at a consistent path. A future prebuilt release will need Developer ID signing, which is a different identity again.

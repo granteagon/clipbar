@@ -32,3 +32,18 @@ final class VaultTests: XCTestCase {
         XCTAssertThrowsError(try vault.load())
     }
 }
+
+extension VaultTests {
+    func testWrongKeyAndTruncatedFileAreRejected() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("history.enc")
+        let key = SymmetricKey(size: .bits256)
+        let vault = Vault(url: url, keyProvider: { key })
+        try vault.save([Clip(text: "test")])
+        let wrongKey = Vault(url: url, keyProvider: { SymmetricKey(size: .bits256) })
+        XCTAssertThrowsError(try wrongKey.load())
+        try Data([1, 2, 3]).write(to: url)
+        XCTAssertThrowsError(try vault.load())
+    }
+}

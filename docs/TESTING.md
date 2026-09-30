@@ -9,7 +9,7 @@ Local validation on 2026-09-25: six tests pass; universal arm64/x86_64 build and
 ## Manual before public release
 
 - Start the bundled app. Verify no Dock icon and a visible clipboard menu bar icon.
-- Copy two text entries and one PNG/TIFF. Open history with Command-backslash. Search, select with arrows, Return to copy, and paste in another app.
+- Copy two text entries and one PNG/TIFF. Open history with Command-backslash. Select with arrows while holding Command, then release to paste in the original app. Test Return and row clicks too.
 - Verify Command-comma opens Settings from history; switching General, History, Privacy, and Shortcuts preserves the selected pane on reopening.
 - Hide the menu bar icon in General, confirm no Dock icon, close windows and reopen from Finder/Spotlight, then restore the default. Verify shortcut failure restores the icon even in hidden mode.
 - Verify Escape and outside clicks dismiss the panel. Test alternate shortcuts and a deliberately conflicting hotkey.
@@ -32,7 +32,7 @@ Preferences update validation: Command-comma opens the native toolbar settings w
 Nine automated tests pass, including quick-tap versus held-selection release, one-shot commit, and cancellation. Manual checks required on a permission-enabled Mac:
 
 - Enable Accessibility for the final installed app; copy test entries from TextEdit. Hold the shortcut, navigate with arrows, release Command, and verify exactly one paste into the original selection. Also test Return and row-click selection.
-- Quick-tap the shortcut and verify the picker stays open. Escape, outside clicks, and Command-comma must cancel release-to-paste.
+- Invoke from the menu bar and verify the picker stays open until a selection is made. Escape, outside clicks, and Command-comma must cancel release-to-paste.
 - Deny/revoke Accessibility and verify the copy-and-explain fallback, then grant permission and retry.
 - Change focus during return to the target, hold extra modifiers, or terminate the target. Verify no paste goes to another process.
 - Disable PasteAutomatically and verify both Return and release selection only copy.
@@ -54,3 +54,10 @@ Preferences visibility regression: invoking history (including reopening the app
 Live check: opened Preferences with Command-comma and confirmed it remained visible after key release. Reopened ClipBar while Preferences was open and confirmed only the picker was shown. Command-comma then reopened Preferences successfully. All 11 tests and the universal development-signed build pass.
 
 2026-09-30 permission repair and end-to-end verification: automatic pasting was blocked by a stale Accessibility record, despite an enabled System Settings toggle. With user approval and user-completed macOS authentication, reset only com.granteagon.ClipBar's Accessibility record and re-added the current development-signed app. The existing process then reported enabled access without restart. In an isolated temporary TextEdit document, copied two distinct test entries, opened ClipBar without changing the target application, selected the older entry with Command–Down, and released Command. TextEdit's selected text was automatically replaced by the older entry; no Command-V was sent by the test operator. Existing history was retained. No paste-code change was needed.
+
+
+## Version 0.1.0 release validation — September 30, 2026
+
+20 automated tests pass on Apple Silicon with Xcode 27. Added coverage for concealed-type privacy markers, excluded apps and capture controls, managed preference write protection and bounds, private pasteboard text/image writes, duplicate metadata refresh, legacy optional source decoding, individual deletion, wrong encryption keys, and truncated ciphertext. Tests use isolated storage and pasteboards. The universal release build succeeds and both Mach-O slices declare macOS 13.0 minimum. Actual picker and settings screenshots use isolated sample data without reading user history.
+
+Automatic text paste after Command release was verified in TextEdit after repairing the Accessibility grant (see above). Intel hardware, macOS 13 hardware, enrolled-device MDM delivery, lock/sleep integration, and broad third-party editor coverage remain unverified. These limits must accompany the initial release rather than be described as fully tested.

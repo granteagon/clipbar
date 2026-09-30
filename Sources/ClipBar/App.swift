@@ -177,7 +177,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 }
 
 @main enum ClipBarMain {
-    static func main() {
+    @MainActor static func main() {
+        if CommandLine.arguments.contains("--version") { print("ClipBar 0.1.0"); return }
+        if let index = CommandLine.arguments.firstIndex(of: "--render-screenshots"), CommandLine.arguments.count > index + 1 {
+            _ = NSApplication.shared
+            do { try ScreenshotRenderer.render(to: URL(fileURLWithPath: CommandLine.arguments[index + 1])) }
+            catch { fputs("Screenshot rendering failed: \(error)\n", stderr); exit(1) }
+            return
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
