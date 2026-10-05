@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadContent</key>
+			<dict>
+				<key>com.granteagon.ClipBar</key>
+				<dict>
+					<key>Forced</key>
+					<array>
+						<dict>
+							<key>mcx_preference_settings</key>
+							<dict>
+								<key>CaptureEnabled</key>
+								<true/>
+								<key>ClearOnLock</key>
+								<true/>
+								<key>ExcludedBundleIDs</key>
+								<array>
+									<string>com.1password.1password</string>
+									<string>com.agilebits.onepassword7</string>
+									<string>com.bitwarden.desktop</string>
+									<string>com.apple.Passwords</string>
+								</array>
+								<key>HistoryLimit</key>
+								<integer>25</integer>
+								<key>PersistHistory</key>
+								<false/>
+								<key>RetentionHours</key>
+								<real>1.0</real>
+							</dict>
+						</dict>
+					</array>
+				</dict>
+			</dict>
+			<key>PayloadDisplayName</key>
+			<string>ClipBar Preferences</string>
+			<key>PayloadIdentifier</key>
+			<string>com.granteagon.ClipBar.Preferences</string>
+			<key>PayloadType</key>
+			<string>com.apple.ManagedClient.preferences</string>
+			<key>PayloadUUID</key>
+			<string>F5D4D9F2-8520-4DA1-AEA6-3B30F5E44E65</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>ClipBar Managed example</string>
+	<key>PayloadIdentifier</key>
+	<string>com.granteagon.ClipBar.Managed example</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>11E62DBA-9356-46B7-9CC7-44547E9D78EB</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

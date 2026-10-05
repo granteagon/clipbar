@@ -1,0 +1,15 @@
+name: Build and test
+on: [push, pull_request]
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+      - run: ./scripts/build.sh --universal
+      - run: dist/ClipBar.app/Contents/MacOS/ClipBar --version
+      - run: ditto -c -k --keepParent dist/ClipBar.app dist/ClipBar-development.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipBar-development
+          path: dist/ClipBar-development.zip
