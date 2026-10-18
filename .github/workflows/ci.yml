@@ -2,11 +2,23 @@ name: Build and test
 on: [push, pull_request]
 jobs:
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Report runner and toolchain
+        run: |
+          uname -m
+          sw_vers
+          xcodebuild -version
+          swift --version
+          clang --version
       - run: swift test
       - run: ./scripts/build.sh --universal
+      - name: Verify universal binary and signature
+        run: |
+          lipo -archs dist/ClipBar.app/Contents/MacOS/ClipBar
+          lipo -verify_arch arm64 x86_64 dist/ClipBar.app/Contents/MacOS/ClipBar
+          codesign --verify --deep --strict --verbose=2 dist/ClipBar.app
       - run: dist/ClipBar.app/Contents/MacOS/ClipBar --version
       - run: ditto -c -k --keepParent dist/ClipBar.app dist/ClipBar-development.zip
       - uses: actions/upload-artifact@v4
