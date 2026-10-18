@@ -17,7 +17,7 @@ jobs:
       - name: Verify universal binary and signature
         run: |
           lipo -archs dist/ClipBar.app/Contents/MacOS/ClipBar
-          lipo -verify_arch arm64 x86_64 dist/ClipBar.app/Contents/MacOS/ClipBar
+          lipo dist/ClipBar.app/Contents/MacOS/ClipBar -verify_arch arm64 x86_64
           codesign --verify --deep --strict --verbose=2 dist/ClipBar.app
       - run: dist/ClipBar.app/Contents/MacOS/ClipBar --version
       - run: ditto -c -k --keepParent dist/ClipBar.app dist/ClipBar-development.zip
